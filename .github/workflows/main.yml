@@ -22,19 +22,25 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Find Gradle wrapper
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
         run: |
-          GRADLEW=$(find extracted -type f -name gradlew | head -n 1)
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew not found"
-            find extracted -maxdepth 4 -type f | head -100
+          PROJECT_DIR=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print -quit | xargs -r dirname)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: Android Gradle project not found"
+            find extracted -maxdepth 5 -type f | head -100
             exit 1
           fi
-          echo "Found: $GRADLEW"
-          chmod +x "$GRADLEW"
-          DIR=$(dirname "$GRADLEW")
-          cd "$DIR"
-          "$GRADLEW" assembleDebug
+
+          echo "Project found at: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
